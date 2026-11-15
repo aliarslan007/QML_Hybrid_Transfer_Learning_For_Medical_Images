@@ -1,0 +1,13 @@
+# Large or regenerable files (folds/*.json and results/*.csv ARE committed)
+data/
+features/*.npz
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+report/*.aux
+report/*.log
+report/*.out
+report/*.bbl
+report/*.blg
+.venv/

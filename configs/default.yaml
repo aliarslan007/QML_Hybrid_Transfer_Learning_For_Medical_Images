@@ -1,0 +1,37 @@
+# Single source of truth for every experiment setting.
+# Change values here, never inside the scripts, so every run is reproducible.
+
+dataset: pneumoniamnist
+image_size: 224            # MedMNIST+ native-resolution images
+
+paths:
+  data_root: data          # MedMNIST .npz files are downloaded here
+  features: features/pneumoniamnist_224_resnet18.npz
+  folds: folds/pneumoniamnist_folds.json
+  results: results
+
+# Training-set sizes and repeats (synopsis Sec. III)
+train_sizes: [50, 100, 250, 500, 1000]
+n_folds: 5                 # stratified subsamples per training size
+init_seeds: [0, 1, 2]      # model initialisations per subsample
+fold_base_seed: 2026       # fixed seed used to draw the subsamples
+
+# Feature reduction (synopsis Sec. IV)
+dims: [4, 8]               # PCA output dimensions d
+clip_percentiles: [1, 99]  # robust range used to map PCA scores to angles
+
+# Training (identical for every head)
+training:
+  max_epochs: 300
+  patience: 30             # early stopping on validation loss
+  # Same small search for every head; best config chosen by validation AUROC
+  lr_grid: [0.01, 0.03, 0.1]
+  wd_grid: [0.0, 0.001]
+
+# Heads
+mlp_hidden: {4: 4, 8: 5}   # h chosen so MLP params ~ VQC params (25 vs 26, 51 vs 50)
+vqc:
+  layers: 2
+  entangle: true
+  diff_method: backprop    # exact simulator gradients; parameter-shift used in the gradient check
+  init_std: 0.1            # small initial angles (helps avoid flat landscapes)
