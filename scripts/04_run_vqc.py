@@ -26,7 +26,7 @@ if __name__ == "__main__":
     p.add_argument("--seeds", nargs="+", type=int, default=[0])
     a = p.parse_args()
 
-    print(build_head("vqc", a.dims[0], cfg).draw())   # show the circuit once
+    print(build_head(a.heads[0], a.dims[0], cfg).draw())   # show the circuit once   # show the circuit once
 
     data = ReducedData(load_features(cfg["paths"]["features"]), a.dims, cfg["clip_percentiles"])
     folds = load_json(cfg["paths"]["folds"])
