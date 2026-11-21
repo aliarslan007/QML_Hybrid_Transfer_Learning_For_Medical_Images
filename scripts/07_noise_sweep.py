@@ -124,10 +124,13 @@ if __name__ == "__main__":
     for ax, metric in zip(axes, ["test_auroc", "test_balanced_accuracy"]):
         for (head, name), g in df[df.n == max(a.sizes)].groupby(["head", "setting"]):
             s = g.groupby("p")[metric].agg(["mean", "std"])
-            ax.errorbar(np.array(s.index) + 1e-4, s["mean"], yerr=s["std"], marker="o",
-                        capsize=3, label=f"{head}, {name}")
+            x = np.where(s.index == 0, 1e-4, s.index)
+            ax.errorbar(x, s["mean"], yerr=s["std"], marker="o", capsize=3,
+                        color="C0" if head == "vqc" else "C3",
+                        linestyle="-" if name == "gate noise only" else "--",
+                        label=f"{head}, {name}")
         ax.set_xscale("log")
-        ax.set_xlabel("1-qubit depolarizing p (CNOT: 10p)   [0 plotted at 1e-4]")
+        ax.set_xlabel("1-qubit depolarizing p (CNOT: 10p); leftmost point = noiseless")
         ax.set_title(metric.replace("test_", "").replace("_", " ") + f"  (n = {max(a.sizes)})")
         ax.grid(alpha=0.3)
     axes[0].set_ylabel("test score (mean ± s.d. over folds)")
