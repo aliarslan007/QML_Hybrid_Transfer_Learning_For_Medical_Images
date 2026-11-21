@@ -32,13 +32,17 @@ if __name__ == "__main__":
 
     dims = sorted(d for d in df["d"].unique() if d != 512)
     fig, axes = plt.subplots(1, len(dims), figsize=(5 * len(dims), 4), sharey=True, squeeze=False)
+    colors = {"linear": "C0", "mlp": "C1", "vqc": "C2", "vqc_noent": "C3"}
     ref = df[df["head"] == "lr512_reference"].groupby("n")["test_auroc"].mean()
     for ax, d in zip(axes[0], dims):
         sub = df[df["d"] == d]
         for head, g in sub.groupby("head"):
-            stats = g.groupby("n")["test_auroc"].agg(["mean", "std"])
-            ax.errorbar(stats.index, stats["mean"], yerr=stats["std"],
-                        marker="o", capsize=3, label=head)
+            stats = g.groupby("n")["test_auroc"].agg(["mean", "std", "count"])
+            runs = int(stats["count"].max())
+            label = f"{head} ({runs} run{'s' if runs > 1 else ''} per point)"
+            ax.errorbar(stats.index, stats["mean"], yerr=stats["std"].fillna(0),
+                        marker="o", capsize=3, label=label,
+                        color=colors.get(head), linestyle="-" if runs > 1 else ":")
         if len(ref):
             ax.plot(ref.index, ref.values, "k--", label="512-d LR (reference)")
         ax.set_xscale("log")
@@ -46,7 +50,14 @@ if __name__ == "__main__":
         ax.set_title(f"d = {d}")
         ax.grid(alpha=0.3)
     axes[0][0].set_ylabel("test AUROC (mean ± s.d.)")
-    axes[0][-1].legend(fontsize=8)
-    fig.tight_layout()
+
+    handles = {}
+    for ax in axes[0]:
+        for h, lab in zip(*ax.get_legend_handles_labels()):
+            handles.setdefault(lab, h)
+    fig.legend(handles.values(), handles.keys(), loc="lower center",
+               ncol=min(len(handles), 4), fontsize=8, frameon=False)
+    fig.tight_layout(rect=(0, 0.1, 1, 1))
+
     fig.savefig(res / "learning_curves.png", dpi=200)
     print(f"Saved {res / 'learning_curves.png'}")

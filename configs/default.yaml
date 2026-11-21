@@ -22,10 +22,9 @@ clip_percentiles: [1, 99]  # robust range used to map PCA scores to angles
 
 # Training (identical for every head)
 training:
-  max_epochs: 300
-  patience: 30             # early stopping on validation loss
-  # Same small search for every head; best config chosen by validation AUROC
-  lr_grid: [0.01, 0.03, 0.1]
+  max_epochs: 1000        # was 300
+  patience: 50            # was 30
+  lr_grid: [0.01, 0.03, 0.1, 0.3]   # added 0.3
   wd_grid: [0.0, 0.001]
 
 # Heads
