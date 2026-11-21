@@ -247,18 +247,22 @@ All heads are trained by an identical procedure. Because $n\le1000$, every
 optimizer step uses the full training subsample. We use Adam~\cite{kingma2015}
 to minimize class-weighted binary cross-entropy, with the positive class
 weighted by $n_{\mathrm{neg}}/n_{\mathrm{pos}}$ so that the majority class
-does not dominate. Training runs for 30 epochs. Deviation from the synopsis: 
-after the Week 1 pilot, the epoch limit was raised from 300 to 1000, patience 
-from 30 to 50, and 0.3 was added to the learning-rate grid. Many runs had 
-stopped at the epoch limit rather than by early stopping. The change was 
-applied to all heads before the full quantum grid was run.It stops early
-when the validation loss has not improved for 30 epochs, and the weights
+does not dominate. Training runs for at most 1000 epochs. It stops early
+when the validation loss has not improved for 50 epochs, and the weights
 with the lowest validation loss are restored. Each head receives the same
-hyperparameter search: learning rate $\in\{0.01,0.03,0.1\}$ $\times$ weight
+hyperparameter search: learning rate $\in\{0.01,0.03,0.1,0.3\}$ $\times$ weight
 decay $\in\{0,10^{-3}\}$. The configuration with the highest validation
 AUROC is selected. Each $(n,\text{subsample})$ pair is trained with 3
 initialization seeds, giving 15 runs per head and setting. The test set is
 never used for training, early stopping, or model selection.
+
+
+\emph{Deviation from the synopsis:} after the Week~1 pilot, the epoch
+limit was raised from 300 to 1000, patience from 30 to 50, and 0.3 was
+added to the learning-rate grid, because many runs had stopped at the
+epoch limit rather than by early stopping. The change was applied to all
+heads before the full quantum grid was run, and it moved mean validation
+AUROC by at most 0.003.
 
 \subsection{Gradient verification}
 On hardware, gradients cannot be obtained by backpropagation. They are
