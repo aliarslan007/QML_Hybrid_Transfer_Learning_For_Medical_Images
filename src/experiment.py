@@ -7,7 +7,7 @@ threshold is chosen on validation, and only then is the test set scored.
 import csv
 import itertools
 from pathlib import Path
-
+import torch
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
@@ -56,6 +56,9 @@ def run_torch_head(head, d, n, fold, seed, data: ReducedData, folds, cfg):
 
     thr = youden_threshold(data.y["val"], best["val_scores"])
     test = evaluate(data.y["test"], predict_scores(best["model"], X["test"]), thr)
+    wdir = Path(cfg["paths"]["results"]) / "weights"
+    wdir.mkdir(parents=True, exist_ok=True)
+    torch.save(best["model"].state_dict(), wdir / f"{head}_d{d}_n{n}_f{fold}_s{seed}.pt")
     return {"head": head, "d": d, "n": n, "fold": fold, "seed": seed,
             "n_params": count_params(best["model"]), "lr": best["lr"], "wd": best["wd"],
             "val_auroc": best["val_auroc"], "best_epoch": best["best_epoch"],
