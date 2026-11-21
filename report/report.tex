@@ -247,7 +247,11 @@ All heads are trained by an identical procedure. Because $n\le1000$, every
 optimizer step uses the full training subsample. We use Adam~\cite{kingma2015}
 to minimize class-weighted binary cross-entropy, with the positive class
 weighted by $n_{\mathrm{neg}}/n_{\mathrm{pos}}$ so that the majority class
-does not dominate. Training runs for at most 300 epochs. It stops early
+does not dominate. Training runs for 30 epochs. Deviation from the synopsis: 
+after the Week 1 pilot, the epoch limit was raised from 300 to 1000, patience 
+from 30 to 50, and 0.3 was added to the learning-rate grid. Many runs had 
+stopped at the epoch limit rather than by early stopping. The change was 
+applied to all heads before the full quantum grid was run.It stops early
 when the validation loss has not improved for 30 epochs, and the weights
 with the lowest validation loss are restored. Each head receives the same
 hyperparameter search: learning rate $\in\{0.01,0.03,0.1\}$ $\times$ weight
@@ -312,9 +316,9 @@ generated from the logged results by a script.
 \bibitem{shahjalal2025} Shahjalal, J.~K. Fahim, P.~C. Paul, M.~R. Hossain, M.~T. Ahmed, and D.~Chakraborty, ``HQCNN: A hybrid quantum-classical neural network for medical image classification,'' arXiv:2509.14277, 2025.
 \bibitem{singh2025} G.~Singh, H.~Jin, and K.~M. Merz, Jr., ``Benchmarking MedMNIST dataset on real quantum hardware,'' arXiv:2502.13056, 2025.
 \bibitem{bowles2024} J.~Bowles, S.~Ahmed, and M.~Schuld, ``Better than classical? The subtle art of benchmarking quantum machine learning models,'' arXiv:2403.07059, 2024.
-\bibitem{kolle2024} M.~K\"olle, J.~Maurer, P.~Altmann, L.~S\"unkel, J.~Stein, and C.~Linnhoff-Popien, ``Disentangling quantum and classical contributions in hybrid quantum machine learning architectures,'' in \emph{Proc. ICAART}, 2024, arXiv:2311.05559.
+\bibitem{kolle2024} M.~K\"olle, J.~Maurer, P.~Altmann, L.~S\"unkel, J.~Stein, and C.~Linnhoff-Popien, ``Disentangling quantum and classical contributions in hybrid quantum machine learning architectures,'' in \emph{Proc. 16th Int. Conf. Agents and Artificial Intelligence (ICAART)}, vol.~3, 2024, pp.~649--656, doi: 10.5220/0012381600003636.
 \bibitem{schuldkilloran2022} M.~Schuld and N.~Killoran, ``Is quantum advantage the right goal for quantum machine learning?'' \emph{PRX Quantum}, vol.~3, p.~030101, 2022.
-\bibitem{martinperez2026} D.~Mart\'{\i}n-P\'erez, F.~Rodr\'{\i}guez-D\'{\i}az, D.~Guti\'errez-Avil\'es, A.~Troncoso, and F.~Mart\'{\i}nez-\'Alvarez, ``Hybrid classical-quantum transfer learning with noisy quantum circuits,'' \emph{Comput. Model. Eng. Sci.}, 2026, arXiv:2603.16973.
+\bibitem{martinperez2026} D.~Mart\'{\i}n-P\'erez, F.~Rodr\'{\i}guez-D\'{\i}az, D.~Guti\'errez-Avil\'es, A.~Troncoso, and F.~Mart\'{\i}nez-\'Alvarez, ``Hybrid classical-quantum transfer learning with noisy quantum circuits,'' \emph{Comput. Model. Eng. Sci.}, 2026,doi: 10.32604/cmes.2026.082712, arXiv:2603.16973.
 \bibitem{yang2023} J.~Yang \emph{et al.}, ``MedMNIST v2 -- A large-scale lightweight benchmark for 2D and 3D biomedical image classification,'' \emph{Sci. Data}, vol.~10, p.~41, 2023.
 \bibitem{kermany2018} D.~S. Kermany \emph{et al.}, ``Identifying medical diagnoses and treatable diseases by image-based deep learning,'' \emph{Cell}, vol.~172, no.~5, pp.~1122--1131, 2018.
 \bibitem{mcclean2018} J.~R. McClean, S.~Boixo, V.~N. Smelyanskiy, R.~Babbush, and H.~Neven, ``Barren plateaus in quantum neural network training landscapes,'' \emph{Nat. Commun.}, vol.~9, p.~4812, 2018.
