@@ -92,12 +92,12 @@ def build_head(name: str, d: int, cfg: dict) -> nn.Module:
         return LinearHead(d)
     if name == "mlp":
         return MLPHead(d, cfg["mlp_hidden"][d])
-    if name in ("vqc", "vqc_noent"):
+    if name.startswith("vqc"):
         v = cfg["vqc"]
-        return VQCHead(d, layers=v["layers"],
-                       entangle=(name == "vqc") and v["entangle"],
-                       diff_method=v["diff_method"], init_std=v["init_std"])
-    raise ValueError(f"Unknown head: {name}")
+        layers = int(name.split("_L")[1]) if "_L" in name else v["layers"]
+        return VQCHead(d, layers=layers,
+                    entangle=(name != "vqc_noent") and v["entangle"],
+                    diff_method=v["diff_method"], init_std=v["init_std"])
 
 
 def count_params(model: nn.Module) -> int:

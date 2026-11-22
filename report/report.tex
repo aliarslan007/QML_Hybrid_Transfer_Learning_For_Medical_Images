@@ -1,5 +1,5 @@
 % =====================================================================
-% Project #11 report -- Week 1 progress: Introduction and Methods.
+% Project #11 report -- Week 2 progress: Introduction, Methods, Results.
 % IEEE conference template. Compile with pdflatex (Overleaf: upload as-is).
 % =====================================================================
 \IfFileExists{IEEEtran.cls}{%
@@ -16,6 +16,7 @@
 \usepackage[noadjust]{cite}
 \usepackage[hidelinks]{hyperref}
 \usepackage{tikz}
+\usepackage{graphicx}
 \usetikzlibrary{quantikz}
 
 \begin{document}
@@ -48,7 +49,13 @@ identical features, data subsamples, loss, optimizer, and tuning budget. We
 vary the number of labeled training images from 50 to 1{,}000 and evaluate
 the trained VQC on ideal, noisy, and real IBM quantum backends. The
 criterion that would falsify the small-data claim is fixed before any
-quantum result is observed. \emph{[Results to be added.]}
+quantum result is observed. At $d=4$ the VQC is statistically equivalent
+to the matched MLP at $n\le100$, which falsifies the small-data claim. At
+$d=8$ it exceeds the MLP at $n=50$ and $100$ under the same test, largely
+because the classical heads become unstable, and the advantage disappears
+by $n=250$. Removing entanglement lowers AUROC at every training size.
+Under simulated depolarizing noise, AUROC is preserved while accuracy at a
+fixed threshold collapses. Hardware results will follow.
 \end{abstract}
 
 % =====================================================================
@@ -297,7 +304,17 @@ before any quantum results were obtained.
 \subsection{Ablations, noise, and hardware}
 \textbf{Ablations:} (i) the same VQC with all CNOT gates removed, which
 tests whether entanglement contributes; (ii) circuit depth
-$L\in\{1,2,3\}$. \textbf{Noise and hardware:} the VQC trained at
+$L\in\{1,2,3\}$ at $d=4$ (14, 26 and 38 parameters).
+\textbf{Noise sweep:} each trained VQC head ($d=4$, all $n$, seed 0) is
+evaluated on the full test set with density-matrix simulation
+(\texttt{default.mixed}). A depolarizing channel of strength $p$ follows
+every single-qubit gate, and one of strength $10p$ acts on both qubits
+after every CNOT, with
+$p\in\{0,10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}$, with and
+without 2\% readout bit-flip error and 1024 shots. The decision threshold
+is kept at its noiseless validation value. Modelling CNOT noise as two
+independent single-qubit channels is a simplification.
+\textbf{Noise and hardware:} the VQC trained at
 $n=1000$ is frozen and evaluated on the same 100 stratified test images
 under four conditions: exact simulation, a finite-shot simulator, a noisy
 simulator built from IBM backend calibration data, and a real IBM quantum
@@ -312,6 +329,167 @@ all per-run results are version-controlled on GitHub, and every figure is
 generated from the logged results by a script.
 
 % =====================================================================
+\section{Results}
+\label{sec:results}
+All numbers are test AUROC, mean $\pm$ s.d.\ over the 15 runs
+(5 subsamples $\times$ 3 seeds) unless stated otherwise. Intervals are 95\%
+paired-bootstrap intervals for the mean paired difference
+(Sec.~\ref{sec:stats}). As a sensitivity check that accounts for runs on
+the same subsample sharing their training images, we also resample whole
+subsamples; we state where its verdict differs.
+
+\subsection{Classical baselines and the compression bottleneck}
+Table~\ref{tab:auroc4} and Fig.~\ref{fig:curves} show the results. Every
+head improves with $n$ and levels off above $n=500$. The 512-feature
+logistic-regression reference reaches 0.933 at $n=50$ and 0.972 at
+$n=1000$, above every $d=4$ and $d=8$ head at every $n$. Compressing the
+ResNet features to $d\le8$ principal components therefore loses more
+discriminative information than any choice of head recovers. This
+bottleneck is shared by all heads and does not favor any of them.
+
+\begin{table}[t]
+\centering
+\caption{Test AUROC at $d=4$ (mean $\pm$ s.d., 15 runs; reference: 5 runs).}
+\label{tab:auroc4}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+$n$ & 50 & 100 & 250 & 500 & 1000 \\
+\midrule
+Linear (5)        & .896$\pm$.023 & .910$\pm$.009 & .911$\pm$.008 & .914$\pm$.004 & .915$\pm$.001 \\
+MLP (25)          & .878$\pm$.033 & .899$\pm$.015 & .906$\pm$.014 & .917$\pm$.007 & .920$\pm$.006 \\
+VQC (26)          & .881$\pm$.029 & .897$\pm$.014 & .912$\pm$.008 & .917$\pm$.005 & .919$\pm$.003 \\
+VQC, no CNOT (26) & .856$\pm$.031 & .869$\pm$.021 & .894$\pm$.016 & .902$\pm$.009 & .902$\pm$.007 \\
+\midrule
+LR, 512 features  & .933$\pm$.013 & .949$\pm$.013 & .961$\pm$.012 & .969$\pm$.007 & .972$\pm$.004 \\
+\bottomrule
+\end{tabular}\\[2pt]
+\raggedright\scriptsize Trainable parameters in parentheses.
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../results/learning_curves.png}
+\caption{Test AUROC versus training-set size $n$ at $d=4$ (left) and
+$d=8$ (right). Dashed: logistic regression on all 512 features. Error bars:
+s.d.\ over runs. $d=8$ VQC: 15 runs at $n\le100$, 13 at $n=250$, 5 above.}
+\label{fig:curves}
+\end{figure}
+
+\subsection{VQC versus parameter-matched classical heads}
+\emph{Pre-registered test, $d=4$.} The VQC and the parameter-matched MLP
+are statistically equivalent at both small training sizes:
+$\Delta=+0.003$ $[-0.008,+0.014]$ at $n=50$ and $\Delta=-0.002$
+$[-0.009,+0.005]$ at $n=100$. Both intervals lie within the $\pm0.02$
+equivalence margin. Neither lies entirely above zero, so \textbf{the
+small-data hypothesis is falsified at $d=4$} (but see $d=8$ below). The
+heads remain equivalent at every larger $n$. At $n=250$ the interval
+$[+0.0004,+0.013]$ lies above zero but also inside the margin; we report
+this as a statistically detectable but practically negligible difference,
+and note that the pre-registered rules did not specify which label takes
+precedence when both apply. The 5-parameter linear head outperforms the
+VQC at $n=50$ ($\Delta=-0.014$ $[-0.024,-0.006]$); the VQC is slightly
+ahead of it at $n\ge500$ ($\Delta=+0.004$ at $n=1000$).
+
+\emph{Pre-registered test, $d=8$.} With 15 runs per point at $n\le100$,
+the test is passed at $d=8$: $\Delta=+0.049$ $[+0.022,+0.077]$ at $n=50$
+and $\Delta=+0.029$ $[+0.007,+0.054]$ at $n=100$. Three qualifications
+apply. The subsample-level sensitivity check includes zero at $n=100$
+($[-0.004,+0.072]$). Against the 9-parameter linear head the VQC's lead at
+$n=50$ is inconclusive ($+0.021$ $[-0.001,+0.044]$). The lead vanishes by
+$n=250$ ($+0.001$ $[-0.005,+0.008]$) and reverses at $n=1000$, where the
+MLP is better ($-0.013$ $[-0.022,-0.004]$; one seed for $n\ge500$). The
+effect is driven largely by stability: at $n=50$ the classical heads vary
+with s.d.\ 0.048 (linear) and 0.063 (MLP) across runs, the VQC with 0.013.
+
+\subsection{Entanglement ablation}
+Removing all CNOT gates lowers test AUROC at every training size
+(Table~\ref{tab:auroc4}). At $d=4$ the paired difference
+$\Delta=\mathrm{AUROC}_{\mathrm{VQC}}-\mathrm{AUROC}_{\text{no CNOT}}$
+ranges from $+0.015$ $[+0.013,+0.019]$ at $n=500$ to $+0.029$
+$[+0.023,+0.034]$ at $n=100$. All intervals lie above zero, and the
+subsample-level check agrees. At $d=8$ (one seed) the gain is larger:
+$+0.104$ $[+0.050,+0.159]$ at $n=50$ and $+0.077$ $[+0.035,+0.120]$ at
+$n=100$. Without entanglement the circuit's output is a sum of
+single-feature functions, $f(\mathbf{x})=\sum_i g_i(x_i)$, so the gain
+indicates that the entangled circuit uses interactions between features.
+Both variants have the same number of parameters.
+
+\subsection{Circuit depth}
+Table~\ref{tab:depth} varies the number of layers $L$ at $d=4$. Three
+layers outperform two by $+0.019$ $[+0.007,+0.031]$ at $n=50$ and by a
+small positive margin at most larger $n$. A single layer is the most
+stable at $n=50$ (s.d.\ 0.007) but levels off near 0.89 from $n=250$,
+consistent with underfitting. The $L=3$ circuit exceeds the MLP at $n=50$
+($+0.023$ $[+0.009,+0.038]$), but it is not parameter-matched (38 versus
+25 parameters), the depth was selected after the fact, and it does not
+exceed the linear head; we report it as exploratory.
+
+\begin{table}[t]
+\centering
+\caption{Test AUROC versus circuit depth at $d=4$ (15 runs per point).}
+\label{tab:depth}
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+$n$ & $L=1$ (14) & $L=2$ (26) & $L=3$ (38) \\
+\midrule
+50   & .898$\pm$.007 & .881$\pm$.029 & .900$\pm$.018 \\
+100  & .901$\pm$.003 & .897$\pm$.014 & .908$\pm$.007 \\
+250  & .887$\pm$.010 & .912$\pm$.008 & .917$\pm$.009 \\
+500  & .891$\pm$.003 & .917$\pm$.005 & .919$\pm$.005 \\
+1000 & .892$\pm$.008 & .919$\pm$.003 & .922$\pm$.003 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Noise}
+Fig.~\ref{fig:noise} shows the VQC trained noiselessly at $n=1000$ and
+evaluated under simulated noise (seed 0, 5 subsamples). Under depolarizing
+gate noise alone, test AUROC is unchanged up to $p=0.03$ ($0.919$ at $p=0$
+and $0.919$ at $p=0.03$). Balanced accuracy at the noiseless validation
+threshold drops from $0.794$ to $0.620$ at $p=0.01$ and to $0.500$ at
+$p=0.03$. Depolarizing noise shrinks every expectation value by the same
+factor, $\langle Z\rangle\mapsto(1-4\lambda/3)\langle Z\rangle$ for a
+channel of strength $\lambda$. This preserves the ranking of test images,
+and with it AUROC, but moves all scores past the fixed threshold. With 2\%
+readout error and 1024 shots added, AUROC stays within 0.012 of the
+noiseless value up to $p=0.01$ and collapses to $0.574$ at $p=0.03$. At
+that level the CNOT noise ($10p$) shrinks the signal to roughly a tenth of
+its noiseless size, comparable to the shot noise. The CNOT-free circuit is
+unaffected in AUROC under all conditions ($0.898$--$0.901$), because its
+signal passes through no two-qubit gates. For the hardware run this
+implies that the decision threshold should be recalibrated on hardware
+outputs.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../results/noise_sweep.png}
+\caption{VQC heads trained noiselessly at $n=1000$, $d=4$, evaluated under
+depolarizing noise $p$ on single-qubit gates and $10p$ on CNOTs.
+Dashed: with 2\% readout error and 1024 shots. Mean $\pm$ s.d.\ over 5
+subsamples (seed 0).}
+\label{fig:noise}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Circuit resources per input (from \texttt{qml.specs}).}
+\label{tab:resources}
+\footnotesize
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Circuit & Qubits & Params & Depth & 1q gates & CNOTs & Shots \\
+\midrule
+VQC, $d=4$         & 4 & 26 & 15 & 28 & 8  & exact / 1024 \\
+VQC, $d=8$         & 8 & 50 & 23 & 56 & 16 & exact \\
+No CNOT, $d=4$     & 4 & 26 & 7  & 28 & 0  & exact / 1024 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =====================================================================
 \begin{thebibliography}{99}
 \footnotesize
 \bibitem{he2016} K.~He, X.~Zhang, S.~Ren, and J.~Sun, ``Deep residual learning for image recognition,'' in \emph{Proc. IEEE CVPR}, 2016, pp.~770--778.
@@ -322,7 +500,7 @@ generated from the logged results by a script.
 \bibitem{bowles2024} J.~Bowles, S.~Ahmed, and M.~Schuld, ``Better than classical? The subtle art of benchmarking quantum machine learning models,'' arXiv:2403.07059, 2024.
 \bibitem{kolle2024} M.~K\"olle, J.~Maurer, P.~Altmann, L.~S\"unkel, J.~Stein, and C.~Linnhoff-Popien, ``Disentangling quantum and classical contributions in hybrid quantum machine learning architectures,'' in \emph{Proc. 16th Int. Conf. Agents and Artificial Intelligence (ICAART)}, vol.~3, 2024, pp.~649--656, doi: 10.5220/0012381600003636.
 \bibitem{schuldkilloran2022} M.~Schuld and N.~Killoran, ``Is quantum advantage the right goal for quantum machine learning?'' \emph{PRX Quantum}, vol.~3, p.~030101, 2022.
-\bibitem{martinperez2026} D.~Mart\'{\i}n-P\'erez, F.~Rodr\'{\i}guez-D\'{\i}az, D.~Guti\'errez-Avil\'es, A.~Troncoso, and F.~Mart\'{\i}nez-\'Alvarez, ``Hybrid classical-quantum transfer learning with noisy quantum circuits,'' \emph{Comput. Model. Eng. Sci.}, 2026,doi: 10.32604/cmes.2026.082712, arXiv:2603.16973.
+\bibitem{martinperez2026} D.~Mart\'{\i}n-P\'erez, F.~Rodr\'{\i}guez-D\'{\i}az, D.~Guti\'errez-Avil\'es, A.~Troncoso, and F.~Mart\'{\i}nez-\'Alvarez, ``Hybrid classical-quantum transfer learning with noisy quantum circuits,'' \emph{Comput. Model. Eng. Sci.}, 2026, doi: 10.32604/cmes.2026.082712, arXiv:2603.16973.
 \bibitem{yang2023} J.~Yang \emph{et al.}, ``MedMNIST v2 -- A large-scale lightweight benchmark for 2D and 3D biomedical image classification,'' \emph{Sci. Data}, vol.~10, p.~41, 2023.
 \bibitem{kermany2018} D.~S. Kermany \emph{et al.}, ``Identifying medical diagnoses and treatable diseases by image-based deep learning,'' \emph{Cell}, vol.~172, no.~5, pp.~1122--1131, 2018.
 \bibitem{mcclean2018} J.~R. McClean, S.~Boixo, V.~N. Smelyanskiy, R.~Babbush, and H.~Neven, ``Barren plateaus in quantum neural network training landscapes,'' \emph{Nat. Commun.}, vol.~9, p.~4812, 2018.

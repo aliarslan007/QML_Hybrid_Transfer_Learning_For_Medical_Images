@@ -18,7 +18,7 @@ from src.utils import load_config  # noqa: E402
 if __name__ == "__main__":
     cfg = load_config()
     res = Path(cfg["paths"]["results"])
-    frames = [pd.read_csv(f) for f in sorted(res.glob("*.csv")) if f.name != "summary.csv"]
+    frames = [pd.read_csv(res / f) for f in ("classical.csv", "vqc.csv")]
     if not frames:
         sys.exit("No result files yet.")
     df = pd.concat(frames, ignore_index=True)
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     colors = {"linear": "C0", "mlp": "C1", "vqc": "C2", "vqc_noent": "C3"}
     ref = df[df["head"] == "lr512_reference"].groupby("n")["test_auroc"].mean()
     for ax, d in zip(axes[0], dims):
-        sub = df[df["d"] == d]
+        sub = df[(df["d"] == d) & ~df["head"].isin(["vqc_L1", "vqc_L3"])]
         for head, g in sub.groupby("head"):
             stats = g.groupby("n")["test_auroc"].agg(["mean", "std", "count"])
             runs = int(stats["count"].max())
