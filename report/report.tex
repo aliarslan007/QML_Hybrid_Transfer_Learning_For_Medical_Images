@@ -1,5 +1,5 @@
 % =====================================================================
-% Project #11 report -- Week 2 progress: Introduction, Methods, Results.
+% Project #11 report -- progress report: motivation, problem, approach, results, plan.
 % IEEE conference template. Compile with pdflatex (Overleaf: upload as-is).
 % =====================================================================
 \IfFileExists{IEEEtran.cls}{%
@@ -55,11 +55,17 @@ $d=8$ it exceeds the MLP at $n=50$ and $100$ under the same test, largely
 because the classical heads become unstable, and the advantage disappears
 by $n=250$. Removing entanglement lowers AUROC at every training size.
 Under simulated depolarizing noise, AUROC is preserved while accuracy at a
-fixed threshold collapses. Hardware results will follow.
+fixed threshold collapses. On the IBM \texttt{ibm\_fez} processor, the
+trained circuit keeps its ranking of test images (AUROC 0.943 versus 0.954
+in exact simulation on the same 100 images), while accuracy at the
+noiseless threshold falls and is recovered by recalibrating the threshold
+on hardware outputs, as the noise simulations predicted.
 \end{abstract}
 
 % =====================================================================
 \section{Introduction}
+\subsection{Motivation}
+\label{sec:motivation}
 Medical image classification is a natural testbed for data-efficient
 learning: expert labels are expensive, and many clinical tasks have only
 hundreds of labeled examples. Transfer learning addresses this by reusing a
@@ -77,8 +83,17 @@ numbers, and a 4-qubit VQC classifies them. Because current quantum
 processors offer only a few reliable qubits, this hybrid design is one of
 the few ways to apply VQCs to realistic image data.
 
-A recurring claim in this literature is that quantum heads are
-particularly advantageous when training data are limited. Medical-imaging
+A recurring claim is that such quantum heads are most valuable when
+labeled data are scarce. If the claim holds, quantum heads would help
+exactly where medical AI is weakest: tasks with only tens to hundreds of
+labeled images. If it does not hold, scarce quantum hardware time and
+engineering effort should not be spent on quantum heads for such tasks.
+Either answer is useful, but only if the comparison is fair. As the next
+subsection shows, the existing evidence does not yet provide that
+comparison. This is the motivation for this project.
+
+\subsection{Related Work and the Gap}
+Medical-imaging
 studies frequently report hybrid models outperforming classical
 ones~\cite{shahjalal2025}. However, the evidence is fragile. In a large-scale
 benchmark of 12 QML models across 160 datasets, Bowles
@@ -96,11 +111,34 @@ one medical dataset and IBM hardware. Their classical baseline was not
 parameter-matched, however, and the amount of training data was never
 varied. The small-data claim therefore remains largely untested.
 
+\subsection{Problem Statement}
+\label{sec:problem}
+The problem addressed is whether the small-data claim survives a fair,
+pre-registered test on a real medical-imaging task.
+
 \textbf{Research question.} \emph{Does a VQC head on top of a frozen
 pretrained CNN help on a small medical-image task compared with a classical
 head of matched size?}
 
-\textbf{Contribution.} We do not propose a new architecture. Our
+\textbf{Hypothesis.} At $n\le100$ training images, the VQC head achieves
+higher test AUROC than the parameter-matched MLP head, and this gap shrinks
+as $n$ grows. A finding that the classical head performs as well or better
+is a valid outcome of this study. The criterion that would falsify the
+hypothesis is fixed in advance (Sec.~\ref{sec:stats}).
+
+\textbf{Secondary questions.} (i) Does entanglement contribute to the
+VQC's performance? (ii) Does circuit depth? (iii) How do hardware noise and
+finite measurement shots affect the trained VQC, in simulation and on a
+real IBM quantum processor?
+
+\textbf{Scope.} With 4 to 8 qubits, every circuit here is easy to simulate
+classically, so this study makes no claim of computational quantum
+advantage. It asks a narrower question: whether this class of model
+learns better from few labeled examples, and whether that survives noise.
+
+\subsection{Contributions}
+
+We do not propose a new architecture. Our
 contribution is a controlled \emph{learning-curve} comparison, designed so
 that any of the three possible outcomes (quantum better, equivalent, or
 worse) is informative:
@@ -112,18 +150,27 @@ $d=4$; 50 vs.\ 51 for $d=8$);
 repeated stratified subsamples and paired comparisons;
 \item the falsification criterion for the small-data claim is fixed in
 advance (Sec.~\ref{sec:stats});
-\item the trained VQC is evaluated on exact, finite-shot, noisy-simulated,
-and real IBM quantum backends, and ablations isolate the role of
-entanglement and circuit depth.
+\item ablations isolate the role of entanglement and circuit depth, and the
+trained VQC is evaluated on exact, finite-shot and noisy simulators, and
+on a real IBM quantum processor.
 \end{enumerate}
 
-\textbf{Hypothesis.} At $n\le100$ training images, the VQC head achieves
-higher test AUROC than the parameter-matched MLP head, and this gap shrinks
-as $n$ grows. A finding that the classical head performs as well or better
-is a valid outcome of this study.
-
 % =====================================================================
-\section{Methods}
+\section{Approach and Methods}
+\label{sec:approach}
+\textbf{Overview.} The work follows five stages, each implemented as a
+numbered script in the project repository so that every stage can be
+rerun independently: (1) extract and cache frozen ResNet-18 features;
+(2) draw fixed, stratified training subsamples; (3) train the classical and
+quantum heads under one shared protocol; (4) run ablations and noise
+simulations on the trained heads; (5) compute paired statistics and
+figures from the logged results. Three working principles guide every
+stage. First, the success criterion was fixed before any quantum result
+(pre-registration). Second, the heads differ only in the head itself:
+same features, subsamples, loss, optimizer and tuning budget. Third,
+nothing is trusted without a check: unit tests on fake data, a gradient
+check against the parameter-shift rule, and a zero-noise check that the
+noisy simulator reproduces the trained model exactly.
 
 \subsection{Dataset}
 We use PneumoniaMNIST from MedMNIST v2~\cite{yang2023}. It is derived from
@@ -314,13 +361,24 @@ $p\in\{0,10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}$, with and
 without 2\% readout bit-flip error and 1024 shots. The decision threshold
 is kept at its noiseless validation value. Modelling CNOT noise as two
 independent single-qubit channels is a simplification.
-\textbf{Noise and hardware:} the VQC trained at
-$n=1000$ is frozen and evaluated on the same 100 stratified test images
-under four conditions: exact simulation, a finite-shot simulator, a noisy
-simulator built from IBM backend calibration data, and a real IBM quantum
-processor accessed through the IBM Quantum Open Plan. Prior work has
-evaluated MedMNIST classifiers on IBM hardware~\cite{singh2025}; training
-here never depends on hardware.
+\textbf{Hardware:} one trained model, fixed before any hardware result
+(the $d=4$ VQC trained at $n=1000$ on subsample 0 with seed 0), is
+evaluated on the same 100 stratified test images and 100 stratified
+validation images under four conditions: exact simulation (Qiskit
+statevector), ideal simulation with 1024 shots, a noisy simulation built
+from the processor's reported calibration data (gate and readout errors,
+relaxation and dephasing times; Qiskit Aer), and the real processor. A
+zero-noise check confirms that the Qiskit circuit reproduces the trained
+PennyLane model (maximum score difference $1.9\times10^{-6}$). The
+processor, IBM \texttt{ibm\_fez} (Heron r2, 156 qubits), was chosen by
+availability before any result, through the IBM Quantum Open Plan. The
+circuit is transpiled to the device's native gates (CZ, $\sqrt{X}$,
+$R_Z$) at optimization level 3 and run once with 1024 shots per image,
+without error mitigation; $\langle Z_i\rangle$ is estimated from the
+measured bitstrings. The validation images are used only to recalibrate
+the decision threshold (Youden's $J$) under each condition. Prior work
+has evaluated MedMNIST classifiers on IBM hardware~\cite{singh2025};
+training here never depends on hardware.
 
 \subsection{Reproducibility}
 All settings are stored in a single configuration file. Seeds are fixed
@@ -473,9 +531,64 @@ subsamples (seed 0).}
 \label{fig:noise}
 \end{figure}
 
+\subsection{IBM quantum hardware}
+\label{sec:hardware}
+Table~\ref{tab:hardware} compares the four evaluation conditions on the
+same 100 test images. Because the images are a 100-image subset, the
+absolute AUROC (0.954 in exact simulation) differs from the full-test-set
+value for this model; only differences between conditions are
+interpreted. Intervals are 95\% paired-bootstrap intervals over the 100
+test images.
+
 \begin{table}[t]
 \centering
-\caption{Circuit resources per input (from \texttt{qml.specs}).}
+\caption{The trained $d=4$ VQC on the same 100 test images.
+Balanced accuracy uses either the noiseless validation threshold or a
+threshold recalibrated on 100 validation images run under the same
+condition.}
+\label{tab:hardware}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Condition & AUROC & Bal.\ acc.\ (fixed) & Bal.\ acc.\ (recal.) \\
+\midrule
+Exact simulation         & 0.954 & 0.787 & 0.773 \\
+Ideal, 1024 shots        & 0.949 & 0.787 & 0.773 \\
+Calibrated noise model   & 0.948 & 0.787 & 0.773 \\
+\texttt{ibm\_fez} hardware & 0.943 & 0.734 & 0.813 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Ranking survives.} Hardware AUROC is 0.011 below exact simulation
+($[-0.029,+0.001]$), an interval that includes zero but extends past the
+$-0.02$ margin, so the loss is small but not established as negligible.
+The rank correlation between hardware and exact scores is 0.992. Before
+the job was run, we predicted a hardware AUROC within about 0.02 of the
+calibrated simulation; it was 0.005 below it.
+
+\emph{Threshold breaks, recalibration recovers.} At the noiseless
+threshold, balanced accuracy falls by 0.053 ($[-0.106,-0.012]$). The
+mean expectation value shrinks to 0.88 of its noiseless value on
+hardware, against 0.95 in the calibrated simulation, and unevenly across
+qubits (0.78 to 0.89), so the scores move past the fixed threshold. A
+threshold recalibrated on hardware validation outputs restores balanced
+accuracy (0.813). With 100 validation and 100 test images, the
+recalibrated values carry several points of sampling noise, so we claim
+recovery, not improvement.
+
+\emph{Hardware cost.} Mapping the 4-qubit CNOT ring onto the processor's
+heavy-hex layout, which has no 4-qubit loop, raises the two-qubit gate
+count from 8 CNOTs to 17 CZ gates and the depth from 15 to 62
+(Table~\ref{tab:resources}). On the four physical qubits used, the
+reported mean two-qubit gate error was 0.20\% and the mean readout error
+0.59\%. The job (200 circuits, 1024 shots each) used 56\,s of processor
+time and 0.92 of the plan's 10 usage units, with a 1\,s queue wait.
+
+\begin{table}[t]
+\centering
+\caption{Circuit resources per input (logical: \texttt{qml.specs}; transpiled: Qiskit).}
 \label{tab:resources}
 \footnotesize
 \begin{tabular}{@{}lcccccc@{}}
@@ -485,9 +598,71 @@ Circuit & Qubits & Params & Depth & 1q gates & CNOTs & Shots \\
 VQC, $d=4$         & 4 & 26 & 15 & 28 & 8  & exact / 1024 \\
 VQC, $d=8$         & 8 & 50 & 23 & 56 & 16 & exact \\
 No CNOT, $d=4$     & 4 & 26 & 7  & 28 & 0  & exact / 1024 \\
+\midrule
+VQC, $d=4$, \texttt{ibm\_fez} & 4 & 26 & 62 & 86 & 17 CZ & 1024 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+% =====================================================================
+\section{Progress and Plan to Completion}
+\label{sec:plan}
+As of 26 November 2026, all simulator experiments at $d=4$, the main
+$d=8$ comparison and the hardware evaluation are complete; the remaining
+$d=8$ seeds, the final analysis and the release remain. Table~\ref{tab:done} lists what is finished, and
+Table~\ref{tab:todo} lists what remains, how it will be done and when.
+
+\begin{table*}[t]
+\centering
+\caption{Completed work (all code, subsample indices, per-run results and
+trained weights are on GitHub).}
+\label{tab:done}
+\footnotesize
+\begin{tabular}{@{}p{0.27\textwidth}p{0.10\textwidth}p{0.55\textwidth}@{}}
+\toprule
+Work item & Status & Evidence \\
+\midrule
+Synopsis and pre-registered falsifier & Done & Rules in Sec.~\ref{sec:stats}, fixed before any quantum result \\
+Data pipeline and fixed subsamples & Done & Frozen ResNet-18 features; $5\times5$ stratified subsamples, indices committed \\
+Classical baselines & Done & Linear and MLP heads at $d=4,8$ (300 runs); 512-feature reference (25 runs) \\
+VQC, $d=4$ & Done & 75 runs; backpropagation gradients match the parameter-shift rule \\
+VQC, $d=8$ & Partly done & 15 runs at $n\le100$ (enough for the pre-registered test), 13 at $n=250$, 5 at $n\ge500$ \\
+Entanglement ablation & Done at $d=4$ & 75 runs; $d=8$ one seed (25 runs) \\
+Depth ablation & Done & $L=1,2,3$ at $d=4$, 75 runs each \\
+Noise sweep & Done & Depolarizing gate noise, readout error and shots; 500 evaluations \\
+Statistics & Done & Pre-registered paired bootstrap plus subsample-level sensitivity check \\
+Calibrated noise model & Done & Noise model from \texttt{ibm\_fez} calibration data, same 100 images \\
+Hardware run & Done & \texttt{ibm\_fez}, job \texttt{dc3ujalhdvas73bojra0}, 200 circuits $\times$ 1024 shots \\
+Report & Drafted & Motivation, problem, approach, results including hardware \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Remaining work, method and schedule.}
+\label{tab:todo}
+\footnotesize
+\begin{tabular}{@{}p{0.20\textwidth}p{0.58\textwidth}p{0.14\textwidth}@{}}
+\toprule
+Task & How it will be done & When \\
+\midrule
+Complete the $d=8$ grid & Run the remaining seeds (22 VQC and 50 no-CNOT runs) with the existing training script, which resumes and skips finished runs; then regenerate the summary and statistics & 26--28 Nov \\
+Final presentation & 12-minute talk with the results above, including hardware & 29 Nov \\
+Final report & Discussion, limitations, conclusion and the author-contributions statement; final numbers from the completed $d=8$ grid & 29 Nov--4 Dec \\
+Release & README with the command that reproduces each figure and table; requirements file; tagged GitHub release & 5--6 Dec \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\textbf{Risks and mitigation.} The hardware risk (queue times and the
+usage limit) is resolved: the run used under a tenth of the monthly
+allowance. If the $d=8$ seeds cannot finish in time, results are reported
+with their exact run counts, as now.
+
+\textbf{Definition of done.} The final presentation (29 November); the
+final LaTeX report (PDF and source) and the tagged GitHub release from
+which every figure and table can be regenerated (6 December).
 
 % =====================================================================
 \begin{thebibliography}{99}
