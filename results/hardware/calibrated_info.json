@@ -1,0 +1,20 @@
+{
+ "device": "ibm_fez",
+ "depth": 62,
+ "two_qubit_gates": 17,
+ "ops": {
+  "sx": 46,
+  "rz": 40,
+  "cz": 17,
+  "measure": 4,
+  "barrier": 1
+ },
+ "physical_qubits": [
+  22,
+  24,
+  16,
+  23
+ ],
+ "mean_readout_error": 0.00592041015625,
+ "mean_two_qubit_error": 0.0020013402884566656
+}
