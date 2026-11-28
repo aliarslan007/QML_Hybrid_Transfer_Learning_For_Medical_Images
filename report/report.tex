@@ -1,5 +1,5 @@
 % =====================================================================
-% Project #11 report -- progress report: motivation, problem, approach, results, plan.
+% Project #11 -- final report.
 % IEEE conference template. Compile with pdflatex (Overleaf: upload as-is).
 % =====================================================================
 \IfFileExists{IEEEtran.cls}{%
@@ -180,7 +180,17 @@ splits: 4{,}708 training, 524 validation, and 624 test images. The classes
 are imbalanced, with about 74\% of training images showing pneumonia. We
 use the $224\times224$ MedMNIST+ release, which is derived directly from the
 source images and matches ResNet-18's native input resolution. This avoids
-upsampling the standard $28\times28$ images.
+upsampling the standard $28\times28$ images. Fig.~\ref{fig:xrays} shows
+examples from each class.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{xray_examples.png}
+\caption{Example PneumoniaMNIST training images ($224\times224$): the first
+four images of each class in index order, not selected by appearance.
+Pneumonia typically appears as hazy or patchy opacities in the lungs.}
+\label{fig:xrays}
+\end{figure}
 
 \subsection{Training subsamples}
 \label{sec:folds}
@@ -428,10 +438,10 @@ LR, 512 features  & .933$\pm$.013 & .949$\pm$.013 & .961$\pm$.012 & .969$\pm$.00
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{../results/learning_curves.png}
+\includegraphics[width=\columnwidth]{learning_curves.png}
 \caption{Test AUROC versus training-set size $n$ at $d=4$ (left) and
 $d=8$ (right). Dashed: logistic regression on all 512 features. Error bars:
-s.d.\ over runs. $d=8$ VQC: 15 runs at $n\le100$, 13 at $n=250$, 5 above.}
+s.d.\ over runs; 15 runs per point for every head.}
 \label{fig:curves}
 \end{figure}
 
@@ -450,14 +460,15 @@ precedence when both apply. The 5-parameter linear head outperforms the
 VQC at $n=50$ ($\Delta=-0.014$ $[-0.024,-0.006]$); the VQC is slightly
 ahead of it at $n\ge500$ ($\Delta=+0.004$ at $n=1000$).
 
-\emph{Pre-registered test, $d=8$.} With 15 runs per point at $n\le100$,
-the test is passed at $d=8$: $\Delta=+0.049$ $[+0.022,+0.077]$ at $n=50$
+\emph{Pre-registered test, $d=8$.} With 15 runs per point, the test is
+passed at $d=8$: $\Delta=+0.049$ $[+0.022,+0.077]$ at $n=50$
 and $\Delta=+0.029$ $[+0.007,+0.054]$ at $n=100$. Three qualifications
 apply. The subsample-level sensitivity check includes zero at $n=100$
 ($[-0.004,+0.072]$). Against the 9-parameter linear head the VQC's lead at
 $n=50$ is inconclusive ($+0.021$ $[-0.001,+0.044]$). The lead vanishes by
-$n=250$ ($+0.001$ $[-0.005,+0.008]$) and reverses at $n=1000$, where the
-MLP is better ($-0.013$ $[-0.022,-0.004]$; one seed for $n\ge500$). The
+$n=250$ ($-0.001$ $[-0.006,+0.006]$). At $n=1000$ the MLP is slightly
+ahead ($-0.010$ $[-0.015,-0.006]$), an interval below zero but inside the
+equivalence margin. The
 effect is driven largely by stability: at $n=50$ the classical heads vary
 with s.d.\ 0.048 (linear) and 0.063 (MLP) across runs, the VQC with 0.013.
 
@@ -467,9 +478,9 @@ Removing all CNOT gates lowers test AUROC at every training size
 $\Delta=\mathrm{AUROC}_{\mathrm{VQC}}-\mathrm{AUROC}_{\text{no CNOT}}$
 ranges from $+0.015$ $[+0.013,+0.019]$ at $n=500$ to $+0.029$
 $[+0.023,+0.034]$ at $n=100$. All intervals lie above zero, and the
-subsample-level check agrees. At $d=8$ (one seed) the gain is larger:
-$+0.104$ $[+0.050,+0.159]$ at $n=50$ and $+0.077$ $[+0.035,+0.120]$ at
-$n=100$. Without entanglement the circuit's output is a sum of
+subsample-level check agrees. At $d=8$ the gain is larger at small $n$:
+$+0.107$ $[+0.074,+0.139]$ at $n=50$ and $+0.074$ $[+0.048,+0.103]$ at
+$n=100$, shrinking to $+0.007$ $[+0.003,+0.010]$ at $n=1000$. Without entanglement the circuit's output is a sum of
 single-feature functions, $f(\mathbf{x})=\sum_i g_i(x_i)$, so the gain
 indicates that the entangled circuit uses interactions between features.
 Both variants have the same number of parameters.
@@ -508,9 +519,10 @@ evaluated under simulated noise (seed 0, 5 subsamples). Under depolarizing
 gate noise alone, test AUROC is unchanged up to $p=0.03$ ($0.919$ at $p=0$
 and $0.919$ at $p=0.03$). Balanced accuracy at the noiseless validation
 threshold drops from $0.794$ to $0.620$ at $p=0.01$ and to $0.500$ at
-$p=0.03$. Depolarizing noise shrinks every expectation value by the same
-factor, $\langle Z\rangle\mapsto(1-4\lambda/3)\langle Z\rangle$ for a
-channel of strength $\lambda$. This preserves the ranking of test images,
+$p=0.03$. Depolarizing noise approximately shrinks every expectation
+value by a common factor (exactly so for a global channel, where
+$\langle Z\rangle\mapsto(1-4\lambda/3)\langle Z\rangle$ for strength
+$\lambda$). This preserves the ranking of test images,
 and with it AUROC, but moves all scores past the fixed threshold. With 2\%
 readout error and 1024 shots added, AUROC stays within 0.012 of the
 noiseless value up to $p=0.01$ and collapses to $0.574$ at $p=0.03$. At
@@ -523,7 +535,7 @@ outputs.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{../results/noise_sweep.png}
+\includegraphics[width=\columnwidth]{noise_sweep.png}
 \caption{VQC heads trained noiselessly at $n=1000$, $d=4$, evaluated under
 depolarizing noise $p$ on single-qubit gates and $10p$ on CNOTs.
 Dashed: with 2\% readout error and 1024 shots. Mean $\pm$ s.d.\ over 5
@@ -577,6 +589,21 @@ threshold recalibrated on hardware validation outputs restores balanced
 accuracy (0.813). With 100 validation and 100 test images, the
 recalibrated values carry several points of sampling noise, so we claim
 recovery, not improvement.
+Fig.~\ref{fig:hwxrays} shows six of the hardware test images with the
+model's pneumonia probability in exact simulation and on \texttt{ibm\_fez}.
+Hardware probabilities move toward 0.5 but keep their order, which is the
+shrinkage described above.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{xray_hardware_predictions.png}
+\caption{Six of the 100 hardware test images (the first three of each
+class in index order) with the trained VQC's pneumonia probability in
+exact simulation and on the IBM \texttt{ibm\_fez} processor. The
+probabilities use the trained scale and bias without threshold
+recalibration.}
+\label{fig:hwxrays}
+\end{figure}
 
 \emph{Hardware cost.} Mapping the 4-qubit CNOT ring onto the processor's
 heavy-hex layout, which has no 4-qubit loop, raises the two-qubit gate
@@ -591,78 +618,92 @@ time and 0.92 of the plan's 10 usage units, with a 1\,s queue wait.
 \caption{Circuit resources per input (logical: \texttt{qml.specs}; transpiled: Qiskit).}
 \label{tab:resources}
 \footnotesize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
-Circuit & Qubits & Params & Depth & 1q gates & CNOTs & Shots \\
+Circuit & Qubits & Params & Depth & 1q gates & 2q gates & Shots \\
 \midrule
-VQC, $d=4$         & 4 & 26 & 15 & 28 & 8  & exact / 1024 \\
-VQC, $d=8$         & 8 & 50 & 23 & 56 & 16 & exact \\
-No CNOT, $d=4$     & 4 & 26 & 7  & 28 & 0  & exact / 1024 \\
+VQC, $d=4$         & 4 & 26 & 15 & 28 & 8 CNOT  & exact / 1024 \\
+VQC, $d=8$         & 8 & 50 & 23 & 56 & 16 CNOT & exact \\
+No CNOT, $d=4$     & 4 & 26 & 7  & 28 & 0       & exact / 1024 \\
 \midrule
 VQC, $d=4$, \texttt{ibm\_fez} & 4 & 26 & 62 & 86 & 17 CZ & 1024 \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 % =====================================================================
-\section{Progress and Plan to Completion}
-\label{sec:plan}
-As of 26 November 2026, all simulator experiments at $d=4$, the main
-$d=8$ comparison and the hardware evaluation are complete; the remaining
-$d=8$ seeds, the final analysis and the release remain. Table~\ref{tab:done} lists what is finished, and
-Table~\ref{tab:todo} lists what remains, how it will be done and when.
+\section{Discussion}
+\label{sec:discussion}
+\textbf{Why the answer depends on the number of qubits.} At $d=4$ every
+head reaches the same accuracy, and the VQC is no better than a classical
+head of equal size. At $d=8$ the VQC leads the matched MLP at $n\le100$,
+but the lead comes mostly from stability: the classical heads vary far
+more from subsample to subsample at small $n$ (s.d.\ 0.048--0.063 versus
+0.013). A plausible explanation, which we have not tested, is that the
+VQC's outputs are bounded in $[-1,1]$ and its rotations are periodic,
+which acts like built-in regularization. The advantage is not specific
+to quantum computation in any strong sense: the 9-parameter linear head is
+statistically indistinguishable from the VQC at $n=50$, and the lead
+disappears by $n=250$.
 
-\begin{table*}[t]
-\centering
-\caption{Completed work (all code, subsample indices, per-run results and
-trained weights are on GitHub).}
-\label{tab:done}
-\footnotesize
-\begin{tabular}{@{}p{0.27\textwidth}p{0.10\textwidth}p{0.55\textwidth}@{}}
-\toprule
-Work item & Status & Evidence \\
-\midrule
-Synopsis and pre-registered falsifier & Done & Rules in Sec.~\ref{sec:stats}, fixed before any quantum result \\
-Data pipeline and fixed subsamples & Done & Frozen ResNet-18 features; $5\times5$ stratified subsamples, indices committed \\
-Classical baselines & Done & Linear and MLP heads at $d=4,8$ (300 runs); 512-feature reference (25 runs) \\
-VQC, $d=4$ & Done & 75 runs; backpropagation gradients match the parameter-shift rule \\
-VQC, $d=8$ & Partly done & 15 runs at $n\le100$ (enough for the pre-registered test), 13 at $n=250$, 5 at $n\ge500$ \\
-Entanglement ablation & Done at $d=4$ & 75 runs; $d=8$ one seed (25 runs) \\
-Depth ablation & Done & $L=1,2,3$ at $d=4$, 75 runs each \\
-Noise sweep & Done & Depolarizing gate noise, readout error and shots; 500 evaluations \\
-Statistics & Done & Pre-registered paired bootstrap plus subsample-level sensitivity check \\
-Calibrated noise model & Done & Noise model from \texttt{ibm\_fez} calibration data, same 100 images \\
-Hardware run & Done & \texttt{ibm\_fez}, job \texttt{dc3ujalhdvas73bojra0}, 200 circuits $\times$ 1024 shots \\
-Report & Drafted & Motivation, problem, approach, results including hardware \\
-\bottomrule
-\end{tabular}
-\end{table*}
+\textbf{Entanglement helps, but it is also the main cost.} Removing the
+CNOT gates lowers AUROC at every training size with the same number of
+parameters, so the entangled circuit does use interactions between
+features. The same gates are the dominant noise source: in simulation,
+AUROC collapsed only when CNOT noise became large, and on the real
+processor the heavy-hex layout more than doubled the number of
+two-qubit gates (8 to 17).
 
-\begin{table*}[t]
-\centering
-\caption{Remaining work, method and schedule.}
-\label{tab:todo}
-\footnotesize
-\begin{tabular}{@{}p{0.20\textwidth}p{0.58\textwidth}p{0.14\textwidth}@{}}
-\toprule
-Task & How it will be done & When \\
-\midrule
-Complete the $d=8$ grid & Run the remaining seeds (22 VQC and 50 no-CNOT runs) with the existing training script, which resumes and skips finished runs; then regenerate the summary and statistics & 26--28 Nov \\
-Final presentation & 12-minute talk with the results above, including hardware & 29 Nov \\
-Final report & Discussion, limitations, conclusion and the author-contributions statement; final numbers from the completed $d=8$ grid & 29 Nov--4 Dec \\
-Release & README with the command that reproduces each figure and table; requirements file; tagged GitHub release & 5--6 Dec \\
-\bottomrule
-\end{tabular}
-\end{table*}
+\textbf{The classical part sets the ceiling.} Logistic regression on all
+512 ResNet features outperforms every 4- or 8-dimensional head at every
+training size. As Kölle \emph{et al.}~\cite{kolle2024} observed for hybrid
+transfer learning generally, the classical components determine most of
+the achievable performance; the choice of head moves AUROC by about 0.02,
+the compression step by about 0.05.
 
-\textbf{Risks and mitigation.} The hardware risk (queue times and the
-usage limit) is resolved: the run used under a tenth of the monthly
-allowance. If the $d=8$ seeds cannot finish in time, results are reported
-with their exact run counts, as now.
+\textbf{Noise preserves the ranking but not the threshold.} Both in
+simulation and on \texttt{ibm\_fez}, noise shrank the expectation values
+nearly uniformly, which preserves AUROC but invalidates a decision
+threshold chosen on noiseless outputs. Recalibrating the threshold on a
+small set of hardware outputs is a cheap and effective remedy. The
+calibrated noise model predicted the direction of every effect correctly
+but underestimated the size of the shrinkage by about half.
 
-\textbf{Definition of done.} The final presentation (29 November); the
-final LaTeX report (PDF and source) and the tagged GitHub release from
-which every figure and table can be regenerated (6 December).
+\textbf{Limitations.} (i) The reduction to $d\le8$ dimensions caps every
+head. (ii) 524 labeled validation images select hyperparameters even when
+$n=50$; this is identical for every head but optimistic for all of them.
+(iii) Runs on the same subsample share their images; we therefore also
+report a subsample-level bootstrap. (iv) One dataset, one encoding and one
+circuit family were studied. (v) Every head is tuned over the same small grid of
+eight settings; a larger search could change differences of this size.
+(vi) The noise sweep models CNOT noise as two independent single-qubit
+channels. (vii) The hardware evaluation is one run on one device with 100
+test images and no error mitigation; it tests a predicted mechanism, not a
+ranking of devices. (viii) The pre-registered rules did not specify which
+label applies when an interval is both above zero and inside the
+equivalence margin.
+
+% =====================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+Under a pre-registered, parameter-matched comparison on PneumoniaMNIST,
+a variational quantum head on a frozen ResNet-18 gives no small-data
+advantage with 4 qubits. With 8 qubits it outperforms the matched MLP at
+50 and 100 training images, largely through stability, and the
+advantage vanishes with more data. Entanglement contributes measurably to
+the circuit's accuracy, and on a real IBM quantum processor the trained
+circuit preserves its ranking of patients, provided the decision
+threshold is recalibrated on hardware outputs. Claims of a quantum
+small-data advantage should therefore be tested against classical heads
+of matched size and across training-set sizes, as done here.
+
+\section*{Author Contributions}
+A.~Arslan designed the study, implemented the code, ran all experiments,
+including the IBM hardware run, analyzed the results and wrote the
+report. AI assistants were used for code review, drafting and editing; all
+experiments were run and all results verified by the author.
 
 % =====================================================================
 \begin{thebibliography}{99}
